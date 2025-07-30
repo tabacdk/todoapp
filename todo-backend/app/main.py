@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
 from uvicorn import run
 from fastapi import FastAPI
-from app import user, todo  # importer modulerne
+from app.v1 import user, todo  # importer modulerne
 from app.database import init_db, get_session
 
 @asynccontextmanager
