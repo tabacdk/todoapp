@@ -23,3 +23,4 @@ Thumbs.db
 .idea/
 *.sublime-workspace
 *.sublime-project
+todo-backend/test.db
