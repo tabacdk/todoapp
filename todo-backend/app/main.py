@@ -1,24 +1,8 @@
-from contextlib import asynccontextmanager
 from uvicorn import run
 from fastapi import FastAPI
 from app.v1 import user, todo  # importer modulerne
-from app.database import init_db, get_session
+from app.database import lifespan
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    await init_db()
-    try:
-        yield
-    finally:
-        # Forsøg at commit og lukke session, hvis der er en åben
-        async with get_session() as session:
-            try:
-                await session.commit()
-            except Exception:
-                await session.rollback()
-                raise
-            finally:
-                await session.close()
 
 app = FastAPI(lifespan=lifespan)
 

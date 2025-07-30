@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+from fastapi import FastAPI
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 # from sqlalchemy.orm import sessionmaker
 from app.models import Base
@@ -29,3 +30,19 @@ async def get_db():
             raise e
         finally:
             await close_session(session)
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await init_db()
+    try:
+        yield
+    finally:
+        # Forsøg at commit og lukke session, hvis der er en åben
+        async with get_session() as session:
+            try:
+                await session.commit()
+            except Exception:
+                await session.rollback()
+                raise
+            finally:
+                await session.close()
