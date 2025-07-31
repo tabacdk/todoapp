@@ -1,13 +1,16 @@
 import asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.database import get_session, init_db
+from app.database import async_session_maker, init_db
+from app.config import get_settings
 from app.models.user import User
 from app.models.todo import Todo
 from app.security import hash_password
 
+get_settings(".env.dev")  # Eller .env.pytest afhængig af behov
+
 async def insert_fixtures():
     await init_db()
-    async with get_session() as session:
+    async with async_session_maker() as session:
         user1 = User(
             username="alice",
             hashed_password=hash_password("alice123"),  # eller "plain_password" hvis ikke implementeret endnu

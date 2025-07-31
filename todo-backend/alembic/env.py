@@ -1,21 +1,21 @@
+# alembic/env.py
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 from logging.config import fileConfig
 
-from sqlalchemy import create_engine
-
+from app import config as conf
 from app.models import Base
-from app.models.user import User
-from app.models.todo import Todo
 
-# Erstat 'target_metadata = None' med:
+from alembic.config import Config
+
+config: Config = context.config
+
+settings = conf.get_settings(".env.dev")
+
+alembic_url = settings.alembic_database_url or settings.database_url
+config.set_main_option("sqlalchemy.url", alembic_url)
+
 target_metadata = Base.metadata
-
-# (og sørg for at engine bruger din Async DB URL, hvis relevant)
-
-# this is the Alembic Config object, which provides
-# access to the values within the .ini file in use.
-config = context.config
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
