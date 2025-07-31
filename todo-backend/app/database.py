@@ -1,4 +1,3 @@
-# app/database.py
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from sqlalchemy.ext.asyncio import (
@@ -8,36 +7,46 @@ from sqlalchemy.ext.asyncio import (
 from app.models import Base
 from app.config import get_settings
 
-engine: AsyncEngine | None = None
-async_session_maker: async_sessionmaker[AsyncSession] | None = None
+settings = get_settings()
+DATABASE_URL = settings.database_url
 
-# Bruges i f.eks. tests til at overskrive databasen
-def configure_engine(database_url: str, echo: bool = False):
-    global engine, async_session_maker
-    engine = create_async_engine(database_url, echo=echo)
-    async_session_maker = async_sessionmaker(
-        engine, expire_on_commit=False, class_=AsyncSession
-    )
-
-if engine is None or async_session_maker is None:
-    settings = get_settings()
-    configure_engine(settings.database_url, echo=True)
+engine = create_async_engine(DATABASE_URL, echo=True)
+AsyncSessionLocal = async_sessionmaker(bind=engine, expire_on_commit=False)
+async_session_maker = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
 
 async def init_db():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
+@asynccontextmanager
+async def get_session():
+    async with AsyncSessionLocal() as session:
+        yield session
+
+async def close_session(session):
+    await session.close()
+
 async def get_db():
-    async with async_session_maker() as session:
+    async with get_session() as session:
         try:
             yield session
-        except Exception:
+        except Exception as e:
             await session.rollback()
-            raise
+            raise e
         finally:
-            await session.close()
+            await close_session(session)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_db()
-    yield
+    try:
+        yield
+    finally:
+        async with get_session() as session:
+            try:
+                await session.commit()
+            except Exception:
+                await session.rollback()
+                raise
+            finally:
+                await session.close()

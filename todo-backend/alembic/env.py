@@ -6,14 +6,12 @@ from logging.config import fileConfig
 from app import config as conf
 from app.models import Base
 
-from alembic.config import Config
+config = context.config
+fileConfig(config.config_file_name)
 
-config: Config = context.config
-
-settings = conf.get_settings(".env.dev")
-
-alembic_url = settings.alembic_database_url or settings.database_url
-config.set_main_option("sqlalchemy.url", alembic_url)
+env_file = ".env.dev"  # evt. parameterstyret
+settings = conf.get_settings(env_file)
+config.set_main_option("sqlalchemy.url", settings.alembic_database_url)
 
 target_metadata = Base.metadata
 
